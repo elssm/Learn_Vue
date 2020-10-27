@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="lib/vue.js"></script>
+    <script src='lib/vue-resource.min.js'></script>
+    <link rel="stylesheet" href="lib/bootstrap-3.3.7-dist/css/bootstrap.css">
+</head>
+<body>
+    <div id='app'>
+
+        
+        <div class="panel panel-primary">
+              <div class="panel-heading">
+                    <h3 class="panel-title">添加品牌</h3>
+              </div>
+              <div class="panel-body form-inline">
+                    <label>
+                        Name:
+                        <input type="text" v-model='name' class="form-control">
+                    </label>
+
+                    <input type="button" value="添加" @click='add' class="btn btn-primary">
+              </div>
+        </div>
+        
+
+
+        
+        <table class="table table-hover table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Ctime</th>
+                    <th>Operation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for='item in list' :key='item.id'>
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.ctime }}</td>
+                    <td>
+                        <a href="" @click.prevent='del(item.id)'>删除</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+    </div>
+
+    <script>
+        //若果我们通过全局配置了请求的数据接口根域名，则，在每次单独发起http请求的时候，
+        //请求的URL路径，应该以相对路径开头，前面不能带 / ，否则不会启用根路径做拼接。
+        Vue.http.options.root = 'http://www.liulongbin.top:3005/';
+
+        Vue.http.options.emulateJSON = true;
+
+        var vm = new Vue({
+            el:'#app',
+            data:{
+                id:'',
+                name:'',
+                list:[ //存放所有品牌列表的数组
+                    {id:1,name:'五菱宏光',ctime:new Date()},
+                    {id:2,name:'众泰',ctime:new Date()},
+                ]
+            },
+
+            created(){
+                this.getAllList()
+            },
+
+            methods:{
+                
+                getAllList(){   //获取所有的品牌列表
+                    //分析：
+                    //1.直接通过this.$http发起数据请求
+                    //2.根据接口API文档。获取列表的时候应该发起一个get请求
+                    //3.this.$http.get('url').then(function(result){})
+                    //4.当通过then指定回调函数之后，在回调函数中，可以拿到数据服务器返回的result
+                    //5.先判断result.status是否等于0，如果等于0.可以吧result.message赋值
+                    //给this.list,如果不等于0，可以弹框提示，获取数据失败
+
+                    this.$http.get('api/getprodlist').then(result=>{
+                        //注意：通过$http获取到的数据，都在result.body中存放
+                        var result = result.body
+                        if(result.status === 0 ){
+                            //成功了
+                            this.list = result.message
+                        }else{
+                            //失败了
+                            alert('获取数据失败！')
+                        }
+                    })
+
+                },
+                add(){ //添加品牌列表到后台服务器
+                    //this.$http.post()中接收三个参数：
+                    //第一个参数：要请求的URL地址
+                    //第二个参数：要提交给服务器的数据，要以对象形式提交给服务器{name:this.name}
+                    //第三个参数：是一个配置对象，要以哪种表单数据类型提交过去{emulateJSON:true},以普通表单格式，将数据提交给服务器
+                    //application/x-www-form-urlencoded
+                    //在post方法中，使用.then来设置成功的回调函数。如果想要拿到成功的数据，需要result.body
+
+                    this.$http.post('api/addproduct/',{name:this.name}).then(
+                        result=>{
+                            if (result.body.status === 0){
+                                //成功
+                                //添加完成后，只需要手动调用getAllList,就能刷新品牌列表
+                                this.getAllList()
+                                this.name=''
+                            }else{
+                                alert('添加失败')
+                            }
+
+                        })
+                },
+
+                del(id){
+                    this.$http.get('api/delproduct/' + id).then(result=>{
+                        if(result.body.status === 0){
+                            this.getAllList()
+                        }else{
+                            alert('删除失败')
+                        }
+                    })
+                }
+            }
+        })
+    </script>
+</body>
+</html>
